@@ -16,33 +16,26 @@
 
 // Hash.h
 using namespace std;
-const int DEFAULT_BUCKETS = 8;
+const int BUCKETS = 8;
 
 template<typename KeyType, typename ValueType>
 
 class ExapandableHashMap{
 public:
-    ExapandableHashMap(double maxLoadFactor = 0.5);
+    ExapandableHashMap(double maximumLoadFactor = 0.5);
     ~ExapandableHashMap();
     void reset();
-    int size() const
-    ;
+    int size() const;
     void associate(const KeyType& key, const ValueType& value);
-  
-      // for a map that can't be modified, return a pointer to const ValueType
     const ValueType* find(const KeyType& key) const;
-
-      // for a modifiable map, return a pointer to modifiable ValueType
     ValueType* find(const KeyType& key)
     {
         return const_cast<ValueType*>(const_cast<const ExapandableHashMap*>(this)->find(key));
     }
-//
+
     ExapandableHashMap(const ExapandableHashMap&) = delete;
     ExapandableHashMap& operator=(const ExapandableHashMap&) = delete;
     
-    void printHashTable(); //for testing purposes only, remove once tested fully
-
     
     
     
@@ -63,11 +56,11 @@ private:
     int m_size;
     int m_bucketCount;
     double m_loadFactor;
-        
+    bool calledFromResize;
     vector<Pair*>* hashTable;
     
     void resize();
-    int hashThis(const KeyType& key) const;
+    unsigned int hashThis(const KeyType& key) const;
 
 };
 
@@ -83,12 +76,15 @@ ExapandableHashMap<KeyType, ValueType> :: ExapandableHashMap(double loadFactor){
     hashTable = new vector<Pair*>[m_bucketCount];
     m_size = 0;
     m_maxItems = m_bucketCount * this -> m_loadFactor;
-    
+    calledFromResize = false;
 }
 
 template<typename KeyType, typename ValueType>
 ExapandableHashMap<KeyType, ValueType> :: ~ExapandableHashMap(){
-    for(int i = 0; i < m_bucketCount/2; i++){
+   
+    int n = (calledFromResize) ? 2 : 1;
+    
+    for(int i = 0; i < m_bucketCount/n; i++){
         for(int j = 0; j < hashTable[i].size(); j++){
             Pair* temp = hashTable[i][j];
             hashTable[i].erase(hashTable[i].begin() + j);
@@ -136,8 +132,9 @@ void ExapandableHashMap<KeyType, ValueType> :: resize(){
             tempHash[bucketNum].push_back(new Pair(temp->key,temp->value));
         }
     }
-    
+    calledFromResize = true;
     this -> ~ExapandableHashMap();
+    calledFromResize = false;
     hashTable = tempHash;
         
 }
@@ -146,11 +143,10 @@ void ExapandableHashMap<KeyType, ValueType> :: resize(){
 template<typename KeyType, typename ValueType>
 void ExapandableHashMap<KeyType, ValueType> :: reset(){
     ~ExapandableHashMap();
-    hashTable = new vector<Pair*>[DEFAULT_BUCKETS];
+    hashTable = new vector<Pair*>[BUCKETS];
     m_size = 0;
     m_bucketCount = 8;
     m_maxItems = m_bucketCount * m_loadFactor;
-    
 }
 
 
@@ -172,30 +168,13 @@ const ValueType* ExapandableHashMap<KeyType, ValueType>::find(const KeyType& key
 }
 
 
-
-template<typename KeyType, typename ValueType>
-void ExapandableHashMap<KeyType, ValueType> :: printHashTable(){
-    for(int i = 0; i < m_bucketCount; i++){
-        cout << "Array # " << i << ":  ";
-        for(int j = 0; j < hashTable[i].size(); j++){
-            for(int k = 0; k < hashTable[i][j] -> value.size(); k++){
-                cout << "(" << hashTable[i][j] -> key.latitudeText << "," << hashTable[i][j] -> key.longitudeText <<" --- " << hashTable[i][j] -> value[k].name << ")";
-            }
-        }
-        cout << endl;
-    }
-}
-
-
-
-
 template<typename KeyType, typename ValueType>
 int ExapandableHashMap<KeyType, ValueType> :: size() const{
     return m_size;
 }
 
 template<typename KeyType, typename ValueType>
-int ExapandableHashMap<KeyType, ValueType> :: hashThis(const KeyType& key) const{
+unsigned int ExapandableHashMap<KeyType, ValueType> :: hashThis(const KeyType& key) const{
     
     unsigned int hasher(const KeyType & key);
     

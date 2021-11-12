@@ -5,6 +5,7 @@
 #include <string>
 #include <functional>
 #include <iostream>
+#include <limits>
 
 using namespace std;
 
@@ -23,21 +24,28 @@ public:
 private:
     
     const StreetMap* streetMap;
-    
+    vector<StreetSegment> optimizeRoute(vector<StreetSegment> path, GeoCoord end) const;
 };
 
 PointToPointRouterImpl::PointToPointRouterImpl(const StreetMap* sm): streetMap(sm){}
 PointToPointRouterImpl::~PointToPointRouterImpl(){}
 
-void printStats(StreetSegment* s){
-   std:: cout << "start == (" << s->start.latitudeText << "," << s->start.longitudeText << ") --- end == (" << s->end.latitudeText << "," << s->end.longitudeText << ") --- name = " << s->name << std::endl;
+vector<StreetSegment> PointToPointRouterImpl :: optimizeRoute(vector<StreetSegment> path, GeoCoord end) const{
+   
+    if(path.size() <= 1) return path;
+
+    std::sort (path.begin(), path.end(), [end](const StreetSegment s1, const StreetSegment s2){
+        return distanceEarthMiles(s1.end, end) < distanceEarthMiles(s2.end, end);
+    });
+    
+    return path;
+  
 }
 
 
 DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(const GeoCoord& start, const GeoCoord& end,
         list<StreetSegment>& route, double& totalDistanceTravelled) const {
-    
-    
+        
     ExapandableHashMap<GeoCoord, bool> didVisit;
     ExapandableHashMap<GeoCoord, GeoCoord> previousCoord; //came to first param from second param
     vector<StreetSegment> getSegs; queue<GeoCoord> queue;
@@ -49,7 +57,7 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(const GeoCoord&
     }
     if((!streetMap -> getSegmentsThatStartWith(start, getSegs)) || (!streetMap -> getSegmentsThatStartWith(end, getSegs))) return BAD_COORD;
         
-    queue.push(start);
+    queue.push(start);  int counter = 1;
     while(!queue.empty()){
         GeoCoord cur = queue.front(); queue.pop();
         didVisit.associate(cur, false);
@@ -79,6 +87,10 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(const GeoCoord&
         }
         
         streetMap -> getSegmentsThatStartWith(cur, getSegs);
+
+        getSegs = optimizeRoute(getSegs, end);
+
+        
         for(int i = 0; i < getSegs.size(); i++){
             bool* is_false_ptr = didVisit.find(getSegs[i].end);
             if(is_false_ptr == nullptr || *is_false_ptr == true){
@@ -87,15 +99,11 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(const GeoCoord&
                 didVisit.associate(getSegs[i].end, false);
             }
         }
-        
+        counter++;
     }
     return NO_ROUTE;
 }
 
-//******************** PointToPointRouter functions ***************************
-
-// These functions simply delegate to PointToPointRouterImpl's functions.
-// You probably don't want to change any of this code.
 
 PointToPointRouter::PointToPointRouter(const StreetMap* sm)
 {
@@ -115,27 +123,3 @@ DeliveryResult PointToPointRouter::generatePointToPointRoute(
 {
     return m_impl->generatePointToPointRoute(start, end, route, totalDistanceTravelled);
 }
-
-
-int main(int argc, const char * argv[]) {
-
-    StreetMap s;
-    StreetMap* map_ptr = &s;
-    list<StreetSegment> route; double totalDistanceTravelled = 5;
-    map_ptr -> load("/Users/akhil/Desktop/mapdata copy.txt");
-    GeoCoord start("34.0760230", "-118.4679042");
-    GeoCoord end("34.0693690","-118.4878280");
-    PointToPointRouter p(map_ptr);
-    DeliveryResult d = p.generatePointToPointRoute(start, end, route, totalDistanceTravelled);
-    if(d != 0) cout << d << endl;
-    
-    list<StreetSegment>::iterator it;
-
-    for (it = route.begin(); it != route.end(); it++){
-        StreetSegment temp = *it;
-        printSegStats(&temp);
-    }
-    cout << totalDistanceTravelled << " miles travelled" << endl;
-    
-}
-

@@ -1,17 +1,16 @@
 #include "provided.h"
+#include "ExpandableHashMap.h"
 #include <string>
 #include <vector>
 #include <functional>
-#include "ExpandableHashMap.h"
 #include <iostream>
 #include <fstream>
-#include <sstream>  // needed in addition to <iostream> for string stream I/O
+#include <sstream>
 
 using namespace std;
 
-unsigned int hasher(const GeoCoord& g)
-{
-    return hash<string>()(g.latitudeText + g.longitudeText);
+unsigned int hasher(const GeoCoord& g){
+    return (unsigned int)std::hash<string>()(g.latitudeText + g.longitudeText);
 }
 
 class StreetMapImpl
@@ -30,6 +29,7 @@ private:
 StreetMapImpl::StreetMapImpl(){}
 
 StreetMapImpl::~StreetMapImpl(){}
+
 
 bool StreetMapImpl::load(string mapFile)
 {
@@ -58,17 +58,19 @@ bool StreetMapImpl::load(string mapFile)
               
               vector<StreetSegment>* ptr_start = mapData.find(start);
               vector<StreetSegment>* ptr_end = mapData.find(end);
-
-              if(ptr_start != nullptr)
+              
+              if(ptr_start != nullptr){
                   ptr_start -> push_back(begin);
+              }
               else{
                   size++;
                   vector<StreetSegment> segments;
                   segments.push_back(begin);
                   mapData.associate(start, segments);
               }
-              if(ptr_end != nullptr)
+              if(ptr_end != nullptr){
                   ptr_end -> push_back(last);
+              }
               else{
                   size++;
                   vector<StreetSegment> segments_reverse;
@@ -80,8 +82,6 @@ bool StreetMapImpl::load(string mapFile)
           }
           
       }
-   // cout << "size = " << size << endl;
-  //  mapData.printHashTable();
     return true;
 }
 
@@ -99,10 +99,6 @@ bool StreetMapImpl::getSegmentsThatStartWith(const GeoCoord& gc, vector<StreetSe
     return true;
 }
 
-//******************** StreetMap functions ************************************
-
-// These functions simply delegate to StreetMapImpl's functions.
-// You probably don't want to change any of this code.
 
 StreetMap::StreetMap()
 {
